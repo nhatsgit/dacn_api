@@ -167,5 +167,78 @@ namespace dacn_api.Controllers
                 IdealCaloriesOut = Math.Round(idealCaloriesOut, 0)
             });
         }
+
+        [HttpGet("overview")]
+        public async Task<ActionResult<object>> GetOverview([FromQuery] DateOnly? date = null)
+        {
+            var userId = GetUserIdFromToken();
+
+            var targetDate = date ?? DateOnly.FromDateTime(DateTime.Now);
+            var targetDateStart = targetDate.ToDateTime(TimeOnly.MinValue);
+
+            // ============================================================
+            // 1️⃣ Cân nặng gần nhất TÍNH ĐẾN NGÀY ĐÓ
+            // ============================================================
+            var latestWeight = await _context.WeightRecords
+                .Where(w => w.UserId == userId && w.Date <= targetDate)
+                .OrderByDescending(w => w.Date)
+                .Select(w => w.Weight)
+                .FirstOrDefaultAsync();
+
+            // ============================================================
+            // 2️⃣ Tổng nước uống ngày đó
+            // ============================================================
+            var waterToday = await _context.WaterIntakeRecords
+                .Where(w => w.UserId == userId && w.Date == targetDate)
+                .SumAsync(w => (int?)w.Amount) ?? 0;
+
+            // ============================================================
+            // 3️⃣ Tổng calo nạp ngày đó
+            // ============================================================
+            var caloriesInToday = await _context.MealRecords
+                .Where(m => m.UserId == userId && m.Date == targetDate)
+                .SumAsync(m => (double?)m.TotalCalories) ?? 0;
+
+            // ============================================================
+            // 4️⃣ Tổng calo đốt của ngày đó
+            // ============================================================
+            var dayOfWeek = targetDateStart.DayOfWeek.ToString(); // Monday, Tuesday,...
+
+            var caloriesOutToday = _context.WorkoutPlans
+                .Include(p => p.WorkoutPlanExercises)
+                .ThenInclude(e => e.Exercise)
+                .Where(p => p.UserId == userId)
+                .SelectMany(p => p.WorkoutPlanExercises)
+                .AsEnumerable()
+                .Where(e =>
+                    !string.IsNullOrEmpty(e.DayOfWeek) &&
+                    string.Equals(e.DayOfWeek, dayOfWeek, StringComparison.OrdinalIgnoreCase)
+                )
+                .Sum(e => (e.Exercise?.CaloriesPerMinute ?? 0) * (e.DurationMinutes ?? 0));
+
+            // ============================================================
+            // 5️⃣ Tổng số giờ ngủ của ngày đó
+            // ============================================================
+            var sleepMinutes = await _context.SleepRecords
+                .Where(s => s.UserId == userId && DateOnly.FromDateTime(s.StartTime) == targetDate)
+                .SumAsync(s => (int?)s.DurationMinutes) ?? 0;
+
+            double sleepHours = Math.Round(sleepMinutes / 60.0, 2);
+
+            // ============================================================
+            // Kết quả trả về
+            // ============================================================
+            return Ok(new
+            {
+                date = targetDate,
+                latestWeight,
+                waterToday,
+                caloriesInToday,
+                caloriesOutToday,
+                sleepHours
+            });
+        }
+
+
     }
 }
