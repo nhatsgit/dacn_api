@@ -238,7 +238,61 @@ namespace dacn_api.Controllers
                 sleepHours
             });
         }
+        // File: UserController.cs (Thêm hàm này vào cuối class UserController)
 
+        // ... các using và class UserController
+
+        // ... (Hàm GetProfile giữ nguyên)
+
+        // ... (Các hàm fetchIdealWeight, fetchIdealWater, v.v. giữ nguyên)
+
+        // ✅ 7. Cập nhật thông tin người dùng
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UserProfileUpdateDto model)
+        {
+            var userId = GetUserIdFromToken();
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Cập nhật các trường nếu chúng được cung cấp (khác null)
+            if (model.FullName != null)
+            {
+                user.FullName = model.FullName;
+            }
+
+            if (model.Gender != null)
+            {
+                user.Gender = model.Gender;
+            }
+
+            if (model.DateOfBirth.HasValue)
+            {
+                user.DateOfBirth = model.DateOfBirth.Value;
+            }
+
+            if (model.Height.HasValue)
+            {
+                user.Height = model.Height.Value;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Thông tin hồ sơ đã được cập nhật thành công." });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Xử lý lỗi đồng thời nếu cần
+                return StatusCode(500, "Lỗi cơ sở dữ liệu khi cập nhật.");
+            }
+        }
+
+        // ... (Các hàm khác giữ nguyên)
 
     }
 }
