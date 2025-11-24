@@ -2,6 +2,7 @@
 using dacn_api.Models;
 using dacn_api.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -140,7 +141,7 @@ namespace dacn_api.Controllers
             _context.MealRecords.Add(meal);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetMealById), new { id = meal.Id }, meal);
+            return Ok("thanh cong");
         }
 
         // ✅ PUT /api/meal/{id}

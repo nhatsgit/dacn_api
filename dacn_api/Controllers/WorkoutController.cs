@@ -121,7 +121,7 @@ namespace dacn_api.Controllers
             _context.WorkoutPlans.Add(plan);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = plan.Id }, plan);
+            return Ok("Thành công");
         }
 
         // ✅ PUT /api/workout/{id}
