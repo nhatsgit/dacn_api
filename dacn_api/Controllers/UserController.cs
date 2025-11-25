@@ -197,24 +197,15 @@ namespace dacn_api.Controllers
             // ============================================================
             var caloriesInToday = await _context.MealRecords
                 .Where(m => m.UserId == userId && m.Date == targetDate)
-                .SumAsync(m => (double?)m.TotalCalories) ?? 0;
+                .SumAsync(m => (double?)m.TotalCalories) ?? 0.0; // Đã thay 0 thành 0.0 cho kiểu double
 
             // ============================================================
-            // 4️⃣ Tổng calo đốt của ngày đó
+            // 4️⃣ Tổng calo đốt của ngày đó (ĐÃ SỬA: Lấy từ ActivityRecord)
             // ============================================================
-            var dayOfWeek = targetDateStart.DayOfWeek.ToString(); // Monday, Tuesday,...
-
-            var caloriesOutToday = _context.WorkoutPlans
-                .Include(p => p.WorkoutPlanExercises)
-                .ThenInclude(e => e.Exercise)
-                .Where(p => p.UserId == userId)
-                .SelectMany(p => p.WorkoutPlanExercises)
-                .AsEnumerable()
-                .Where(e =>
-                    !string.IsNullOrEmpty(e.DayOfWeek) &&
-                    string.Equals(e.DayOfWeek, dayOfWeek, StringComparison.OrdinalIgnoreCase)
-                )
-                .Sum(e => (e.Exercise?.CaloriesPerMinute ?? 0) * (e.DurationMinutes ?? 0));
+            var caloriesOutToday = await _context.ActivityRecords
+                .Where(a => a.UserId == userId && a.Date == targetDate)
+                // Tính tổng cột CaloriesOut, sử dụng ?? 0.0 để đảm bảo kiểu trả về là double
+                .SumAsync(a => a.CaloriesOut) ?? 0.0;
 
             // ============================================================
             // 5️⃣ Tổng số giờ ngủ của ngày đó
